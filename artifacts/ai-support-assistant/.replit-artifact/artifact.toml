@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "IT Support AI Assistant"
+description = "An IT support workspace where employees get guided AI troubleshooting and unresolved issues become trackable service tickets for support teams."
+version = "1.0.0"
+id = "artifacts/ai-support-assistant"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22869
+
+[services.development]
+run = "pnpm --filter @workspace/ai-support-assistant run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-support-assistant", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-support-assistant/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22869"
+BASE_PATH = "/"

@@ -1,0 +1,632 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: support
+    description: IT support operations
+  - name: tickets
+    description: Service desk ticket operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /support/overview:
+    get:
+      operationId: getSupportOverview
+      tags: [support]
+      summary: Get support workspace overview
+      responses:
+        "200":
+          description: Overview metrics and recent tickets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportOverview"
+  /troubleshoot/sessions:
+    post:
+      operationId: startTroubleshooting
+      tags: [support]
+      summary: Start an AI-guided troubleshooting session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TroubleshootInput"
+      responses:
+        "201":
+          description: New troubleshooting session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TroubleshootSession"
+  /troubleshoot/sessions/{id}/advance:
+    post:
+      operationId: advanceTroubleshooting
+      tags: [support]
+      summary: Advance an AI-guided troubleshooting session
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TroubleshootAdvanceInput"
+      responses:
+        "200":
+          description: Updated troubleshooting session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TroubleshootSession"
+        "404":
+          description: Session not found
+  /tickets/similar:
+    get:
+      operationId: listSimilarTickets
+      tags: [tickets]
+      summary: Find past tickets that look like this issue
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Ranked similar tickets with reusable solutions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimilarTicket"
+  /tickets:
+    get:
+      operationId: listTickets
+      tags: [tickets]
+      summary: List service desk tickets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, open, in_progress, resolved]
+            default: all
+        - name: requester
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ticket list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ticket"
+    post:
+      operationId: createTicket
+      tags: [tickets]
+      summary: Create a service desk ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketInput"
+      responses:
+        "201":
+          description: Created ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+  /tickets/{id}:
+    get:
+      operationId: getTicket
+      tags: [tickets]
+      summary: Get a service desk ticket
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      responses:
+        "200":
+          description: Ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "404":
+          description: Ticket not found
+    patch:
+      operationId: updateTicket
+      tags: [tickets]
+      summary: Update a service desk ticket
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketUpdate"
+      responses:
+        "200":
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "404":
+          description: Ticket not found
+  /auth/login:
+    post:
+      operationId: login
+      tags: [support]
+      summary: Sign in with a demo workplace account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Unknown account
+  /auth/accounts:
+    get:
+      operationId: listDemoAccounts
+      tags: [support]
+      summary: List the demo workplace accounts available for sign-in
+      responses:
+        "200":
+          description: Demo accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthUser"
+  /kb/articles:
+    get:
+      operationId: listKnowledgeArticles
+      tags: [support]
+      summary: Search knowledge base articles
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KnowledgeArticle"
+  /tickets/{id}/comments:
+    get:
+      operationId: listTicketComments
+      tags: [tickets]
+      summary: List comments on a ticket
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TicketComment"
+    post:
+      operationId: createTicketComment
+      tags: [tickets]
+      summary: Add a comment to a ticket
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketCommentInput"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketComment"
+        "404":
+          description: Ticket not found
+  /tickets/{id}/activity:
+    get:
+      operationId: listTicketActivity
+      tags: [tickets]
+      summary: List activity on a ticket
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      responses:
+        "200":
+          description: Activity timeline
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+  /tickets/{id}/attachments:
+    get:
+      operationId: listTicketAttachments
+      tags: [tickets]
+      summary: List ticket attachments
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      responses:
+        "200":
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TicketAttachment"
+    post:
+      operationId: createTicketAttachment
+      tags: [tickets]
+      summary: Attach a screenshot or log
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketAttachmentInput"
+      responses:
+        "201":
+          description: Created attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketAttachment"
+        "404":
+          description: Ticket not found
+  /tickets/{id}/attachments/{attachmentId}:
+    get:
+      operationId: getTicketAttachment
+      tags: [tickets]
+      summary: Get an attachment including file data
+      parameters:
+        - $ref: "#/components/parameters/TicketId"
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketAttachmentDetail"
+        "404":
+          description: Attachment not found
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [support]
+      summary: List in-app notifications for a user
+      parameters:
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppNotification"
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [support]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppNotification"
+        "404":
+          description: Notification not found
+components:
+  parameters:
+    TicketId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: number
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: number
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Ticket:
+      type: object
+      required: [id, title, requester, department, status, priority, category, description, assignee, createdAt, updatedAt, sla]
+      properties:
+        id: { type: number }
+        title: { type: string }
+        requester: { type: string }
+        department: { type: string }
+        status: { type: string, enum: [open, in_progress, resolved] }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        category: { type: string }
+        description: { type: string }
+        assignee: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        sla: { type: string }
+    SimilarTicket:
+      type: object
+      required: [id, title, requester, status, priority, category, score, solution]
+      properties:
+        id: { type: number }
+        title: { type: string }
+        requester: { type: string }
+        status: { type: string, enum: [open, in_progress, resolved] }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        category: { type: string }
+        sla: { type: string }
+        score: { type: number }
+        solution: { type: string }
+    TicketInput:
+      type: object
+      required: [title, requester, department, status, priority, category, description, sla]
+      properties:
+        title: { type: string, minLength: 1 }
+        requester: { type: string, minLength: 1 }
+        department: { type: string, minLength: 1 }
+        status: { type: string, enum: [open, in_progress, resolved] }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        category: { type: string, minLength: 1 }
+        description: { type: string }
+        assignee: { type: ["string", "null"] }
+        sla: { type: string, minLength: 1 }
+    TicketUpdate:
+      type: object
+      properties:
+        status: { type: string, enum: [open, in_progress, resolved] }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        assignee: { type: ["string", "null"] }
+        sla: { type: string, minLength: 1 }
+    SupportOverview:
+      type: object
+      required: [openTickets, inProgressTickets, resolvedToday, avgResponse, slaAtRisk, recentTickets, categories, priorities, trend]
+      properties:
+        openTickets: { type: number }
+        inProgressTickets: { type: number }
+        resolvedToday: { type: number }
+        avgResponse: { type: string }
+        slaAtRisk: { type: number }
+        recentTickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Ticket"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamedCount"
+        priorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamedCount"
+        trend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+    LoginInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, minLength: 1 }
+    AuthUser:
+      type: object
+      required: [id, name, email, role, department, initials]
+      properties:
+        id: { type: number }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [employee, support] }
+        department: { type: string }
+        initials: { type: string }
+    KnowledgeArticle:
+      type: object
+      required: [id, title, category, summary, body, updatedAt]
+      properties:
+        id: { type: number }
+        title: { type: string }
+        category: { type: string }
+        summary: { type: string }
+        body: { type: string }
+        updatedAt: { type: string, format: date-time }
+    TicketComment:
+      type: object
+      required: [id, ticketId, author, body, createdAt]
+      properties:
+        id: { type: number }
+        ticketId: { type: number }
+        author: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+    TicketCommentInput:
+      type: object
+      required: [author, body]
+      properties:
+        author: { type: string, minLength: 1 }
+        body: { type: string, minLength: 1 }
+    ActivityEvent:
+      type: object
+      required: [id, ticketId, actor, action, detail, createdAt]
+      properties:
+        id: { type: number }
+        ticketId: { type: number }
+        actor: { type: string }
+        action: { type: string }
+        detail: { type: string }
+        createdAt: { type: string, format: date-time }
+    TicketAttachment:
+      type: object
+      required: [id, ticketId, filename, contentType, size, createdAt]
+      properties:
+        id: { type: number }
+        ticketId: { type: number }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: number }
+        createdAt: { type: string, format: date-time }
+    TicketAttachmentInput:
+      type: object
+      required: [filename, contentType, data, author]
+      properties:
+        filename: { type: string, minLength: 1 }
+        contentType: { type: string, minLength: 1 }
+        data: { type: string, minLength: 1 }
+        author: { type: string, minLength: 1 }
+    TicketAttachmentDetail:
+      type: object
+      required: [id, ticketId, filename, contentType, size, data, createdAt]
+      properties:
+        id: { type: number }
+        ticketId: { type: number }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: number }
+        data: { type: string }
+        createdAt: { type: string, format: date-time }
+    AppNotification:
+      type: object
+      required: [id, user, title, body, ticketId, read, createdAt]
+      properties:
+        id: { type: number }
+        user: { type: string }
+        title: { type: string }
+        body: { type: string }
+        ticketId: { type: ["number", "null"] }
+        read: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    NamedCount:
+      type: object
+      required: [name, count]
+      properties:
+        name: { type: string }
+        count: { type: number }
+    TrendPoint:
+      type: object
+      required: [day, opened, resolved]
+      properties:
+        day: { type: string }
+        opened: { type: number }
+        resolved: { type: number }
+    TroubleshootInput:
+      type: object
+      required: [issue]
+      properties:
+        issue: { type: string, minLength: 1 }
+    TroubleshootStep:
+      type: object
+      required: [id, label, detail, status, kind, remediations]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        detail: { type: string }
+        status: { type: string, enum: [pending, running, passed, failed] }
+        kind: { type: string, enum: [check, action, handoff] }
+        remediations:
+          type: array
+          items: { type: string }
+        finding: { type: ["string", "null"] }
+    TroubleshootAdvanceInput:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string, enum: [passed, failed, fixed, still_broken] }
+        finding: { type: ["string", "null"] }
+    IssueClassification:
+      type: object
+      required: [category, device, priority]
+      properties:
+        category: { type: string }
+        device: { type: string }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+    TroubleshootSession:
+      type: object
+      required: [id, issue, status, currentStep, steps, recommendation, classification]
+      properties:
+        id: { type: number }
+        issue: { type: string }
+        status: { type: string, enum: [running, resolved, needs_ticket] }
+        currentStep: { type: number }
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/TroubleshootStep"
+        recommendation: { type: string }
+        classification:
+          $ref: "#/components/schemas/IssueClassification"
+
